@@ -1,0 +1,13 @@
+[project]
+name = "grid-demand-predictor-hu"
+version = "0.1.0"
+description = "Forecasting next-day national electricity load for Hungary."
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = []
+
+[dependency-groups]
+dev = [
+    "pre-commit>=4.6.0",
+    "pytest>=9.1.1",
+]
