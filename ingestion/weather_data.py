@@ -9,6 +9,13 @@ from dotenv import load_dotenv
 from retry_requests import retry
 
 
+def _get_env_variable(var_name: str):
+    var_value = os.getenv(var_name)
+    if var_value is None:
+        raise RuntimeError(f"{var_name} is not set in .env")
+    return var_value
+
+
 def get_weather_data():
     # Setup the Open-Meteo API client with cache and retry on error
     cache_session = requests_cache.CachedSession(
@@ -83,11 +90,11 @@ def get_weather_data():
 
 
 def save_weather_to_postgres(hourly_dataframe):
-    POSTGRES_USER = os.getenv("POSTGRES_USER")
-    POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD")
-    POSTGRES_DB = os.getenv("POSTGRES_DB")
-    POSTGRES_HOST = os.getenv("POSTGRES_HOST")
-    POSTGRES_PORT = os.getenv("POSTGRES_PORT")
+    POSTGRES_USER = _get_env_variable("POSTGRES_USER")
+    POSTGRES_PASSWORD = _get_env_variable("POSTGRES_PASSWORD")
+    POSTGRES_DB = _get_env_variable("POSTGRES_DB")
+    POSTGRES_HOST = _get_env_variable("POSTGRES_HOST")
+    POSTGRES_PORT = _get_env_variable("POSTGRES_PORT")
 
     with psycopg2.connect(
         database=POSTGRES_DB,
@@ -113,7 +120,7 @@ def save_weather_to_postgres(hourly_dataframe):
 
             cur.execute("""
                 CREATE TEMP TABLE temp_raw_weather (
-                    LIKE raw_weather INCLUDING ALL
+                    LIKE raw_weather
                 )
             """)
 
