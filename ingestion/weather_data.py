@@ -101,16 +101,28 @@ with psycopg2.connect(
             precipitation FLOAT,
             apparent_temperature FLOAT,
             cloud_cover FLOAT,
-            wind_speed_10m FLOAT
+            wind_speed_10m FLOAT,
+            PRIMARY KEY (timestamp, location)
         )        
     """)
-    print("Table created!")
+
+    cur.execute("""
+        CREATE TEMP TABLE temp_raw_weather (
+            LIKE raw_weather INCLUDING ALL
+        )
+    """)
 
     csv_buffer = io.StringIO()
     hourly_dataframe.to_csv(csv_buffer, index=False, header=False)
     csv_buffer.seek(0)
 
-    cur.copy_expert("COPY raw_weather FROM STDIN WITH CSV", csv_buffer)
+    cur.copy_expert("COPY temp_raw_weather FROM STDIN WITH CSV", csv_buffer)
+
+    cur.execute("""
+        INSERT INTO raw_weather
+        SELECT * FROM temp_raw_weather
+        ON CONFLICT (timestamp, location) DO NOTHING
+    """)
 
     conn.commit()
     print("Done")
