@@ -80,7 +80,7 @@ def get_weather_data():
     hourly_dataframe["location"] = location
 
     col_order = ["timestamp", "location"] + [
-        col for col in hourly_data.keys() if col != "timestamp"
+        col for col in hourly_data if col != "timestamp"
     ]
     hourly_dataframe = hourly_dataframe[col_order]
 
@@ -96,15 +96,17 @@ def save_weather_to_postgres(hourly_dataframe):
     POSTGRES_HOST = _get_env_variable("POSTGRES_HOST")
     POSTGRES_PORT = _get_env_variable("POSTGRES_PORT")
 
-    with psycopg2.connect(
-        database=POSTGRES_DB,
-        user=POSTGRES_USER,
-        password=POSTGRES_PASSWORD,
-        host=POSTGRES_HOST,
-        port=POSTGRES_PORT,
-    ) as conn:
-        with conn.cursor() as cur:
-            cur.execute("""
+    with (
+        psycopg2.connect(
+            database=POSTGRES_DB,
+            user=POSTGRES_USER,
+            password=POSTGRES_PASSWORD,
+            host=POSTGRES_HOST,
+            port=POSTGRES_PORT,
+        ) as conn,
+        conn.cursor() as cur,
+    ):
+        cur.execute("""
                 CREATE TABLE IF NOT EXISTS raw_weather (
                     ts TIMESTAMPTZ,
                     location TEXT,
@@ -118,26 +120,26 @@ def save_weather_to_postgres(hourly_dataframe):
                 )        
             """)
 
-            cur.execute("""
+        cur.execute("""
                 CREATE TEMP TABLE temp_raw_weather (
                     LIKE raw_weather
                 )
             """)
 
-            csv_buffer = io.StringIO()
-            hourly_dataframe.to_csv(csv_buffer, index=False, header=False)
-            csv_buffer.seek(0)
+        csv_buffer = io.StringIO()
+        hourly_dataframe.to_csv(csv_buffer, index=False, header=False)
+        csv_buffer.seek(0)
 
-            cur.copy_expert("COPY temp_raw_weather FROM STDIN WITH CSV", csv_buffer)
+        cur.copy_expert("COPY temp_raw_weather FROM STDIN WITH CSV", csv_buffer)
 
-            cur.execute("""
+        cur.execute("""
                 INSERT INTO raw_weather
                 SELECT * FROM temp_raw_weather
                 ON CONFLICT (ts, location) DO NOTHING
             """)
 
-            conn.commit()
-            print("Raw weather data saved and commited to postgres.")
+        conn.commit()
+        print("Raw weather data saved and commited to postgres.")
 
 
 def main():
