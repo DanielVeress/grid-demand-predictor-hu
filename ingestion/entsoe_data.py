@@ -6,6 +6,8 @@ import psycopg2
 from dotenv import load_dotenv
 from entsoe import EntsoePandasClient
 
+SCHEMA = "raw"
+
 
 def _get_env_variable(var_name: str):
     var_value = os.getenv(var_name)
@@ -46,8 +48,10 @@ def save_load_to_postgres(df, table_name):
         ) as conn,
         conn.cursor() as cur,
     ):
+        cur.execute(f"CREATE SCHEMA IF NOT EXISTS {SCHEMA}")
+
         cur.execute(f"""
-                CREATE TABLE IF NOT EXISTS {table_name} (
+                CREATE TABLE IF NOT EXISTS {SCHEMA}.{table_name} (
                     ts TIMESTAMPTZ PRIMARY KEY,
                     load FLOAT
                 )        
@@ -55,7 +59,7 @@ def save_load_to_postgres(df, table_name):
 
         cur.execute(f"""
                 CREATE TEMP TABLE temp_{table_name} (
-                    LIKE {table_name}
+                    LIKE {SCHEMA}.{table_name}
                 )
             """)
 
@@ -66,7 +70,7 @@ def save_load_to_postgres(df, table_name):
         cur.copy_expert(f"COPY temp_{table_name} FROM STDIN WITH CSV", csv_buffer)
 
         cur.execute(f"""
-                INSERT INTO {table_name}
+                INSERT INTO {SCHEMA}.{table_name}
                 SELECT * FROM temp_{table_name}
                 ON CONFLICT (ts) DO NOTHING
             """)
@@ -77,8 +81,8 @@ def save_load_to_postgres(df, table_name):
 def main():
     load_dotenv()
     load_df, forecast_df = get_load_data()
-    save_load_to_postgres(load_df, "raw_actual_load")
-    save_load_to_postgres(forecast_df, "raw_forecast_load")
+    save_load_to_postgres(load_df, "actual_load")
+    save_load_to_postgres(forecast_df, "forecast_load")
 
 
 if __name__ == "__main__":

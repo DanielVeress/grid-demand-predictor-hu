@@ -8,6 +8,8 @@ import requests_cache
 from dotenv import load_dotenv
 from retry_requests import retry
 
+SCHEMA = "raw"
+
 
 def _get_env_variable(var_name: str):
     var_value = os.getenv(var_name)
@@ -106,8 +108,10 @@ def save_weather_to_postgres(hourly_dataframe):
         ) as conn,
         conn.cursor() as cur,
     ):
-        cur.execute("""
-                CREATE TABLE IF NOT EXISTS raw_weather (
+        cur.execute(f"CREATE SCHEMA IF NOT EXISTS {SCHEMA}")
+
+        cur.execute(f"""
+                CREATE TABLE IF NOT EXISTS {SCHEMA}.weather (
                     ts TIMESTAMPTZ,
                     location TEXT,
                     temperature_2m FLOAT,
@@ -120,9 +124,9 @@ def save_weather_to_postgres(hourly_dataframe):
                 )        
             """)
 
-        cur.execute("""
+        cur.execute(f"""
                 CREATE TEMP TABLE temp_raw_weather (
-                    LIKE raw_weather
+                    LIKE {SCHEMA}.weather
                 )
             """)
 
@@ -132,8 +136,8 @@ def save_weather_to_postgres(hourly_dataframe):
 
         cur.copy_expert("COPY temp_raw_weather FROM STDIN WITH CSV", csv_buffer)
 
-        cur.execute("""
-                INSERT INTO raw_weather
+        cur.execute(f"""
+                INSERT INTO {SCHEMA}.weather
                 SELECT * FROM temp_raw_weather
                 ON CONFLICT (ts, location) DO NOTHING
             """)
