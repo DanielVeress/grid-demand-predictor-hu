@@ -93,12 +93,17 @@ cython_debug/
 *.joblib
 *.h5
 data/
-models/
+/models/
 
 # OS / editor
 .DS_Store
 .idea/
 .vscode/
 *.swp
+
+# dbt
+logs/
+target/
+dbt_packages/
 
 docs/
