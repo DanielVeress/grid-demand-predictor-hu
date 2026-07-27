@@ -1,0 +1,11 @@
+version: 2
+sources:
+  - name: entsoe
+    schema: raw
+    tables:
+      - name: actual_load
+      - name: forecast_load
+  - name: open_meteo
+    schema: raw
+    tables:
+      - name: weather
