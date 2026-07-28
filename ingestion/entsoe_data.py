@@ -16,7 +16,7 @@ def _get_env_variable(var_name: str):
     return var_value
 
 
-def get_load_data(start_date="20200101", end_date="20210101"):
+def get_load_data(start_date="20250101", end_date="20260101"):
     ENTSOE_API = _get_env_variable("ENTSOE_KEY")
 
     client = EntsoePandasClient(api_key=ENTSOE_API)

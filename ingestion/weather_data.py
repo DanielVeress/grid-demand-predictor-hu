@@ -33,8 +33,8 @@ def get_weather_data():
     params = {
         "latitude": 47.4979,
         "longitude": 19.0402,
-        "start_date": "2026-07-02",
-        "end_date": "2026-07-16",
+        "start_date": "2025-01-01",
+        "end_date": "2026-01-01",
         "hourly": [
             "temperature_2m",
             "relative_humidity_2m",
