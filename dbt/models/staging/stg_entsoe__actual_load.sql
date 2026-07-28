@@ -11,8 +11,11 @@ deduped as (
     select 
         ts_utc, 
         load_mw,
-        row_number() over 
-            (partition by ts_utc order by ts_utc) as row_num
+        row_number() over (
+            partition by ts_utc order by load_mw
+        ) as row_num
     from renamed
 )
-select * from deduped
+select ts_utc, load_mw 
+from deduped
+where row_num = 1
