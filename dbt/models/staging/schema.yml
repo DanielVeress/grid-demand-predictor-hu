@@ -1,0 +1,8 @@
+version: 2
+models:
+  - name: stg_entsoe__actual_load
+    columns:
+      - name: ts_utc
+        tests: [unique, not_null]
+      - name: load_mw
+        tests: [not_null]
