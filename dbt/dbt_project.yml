@@ -32,4 +32,4 @@ clean-targets:         # directories to be removed by `dbt clean`
 models:
   hu_load:
     staging:
-      +materialize: view
+      +materialized: view
