@@ -12,3 +12,27 @@ models:
         tests: [unique, not_null]
       - name: load_mw
         tests: [not_null]
+  - name: stg_open_meteo__actual_weather
+    columns:
+      - name: ts_utc
+        tests: [not_null]
+      - name: location
+        tests: [not_null]
+      - name: temperature_2m
+        tests: [not_null]
+      - name: relative_humidity_2m
+        tests: [not_null]
+      - name: precipitation
+        tests: [not_null]
+      - name: apparent_temperature
+        tests: [not_null]
+      - name: cloud_cover
+        tests: [not_null]
+      - name: wind_speed_10m
+        tests: [not_null]
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments: 
+            combination_of_columns: 
+              - ts_utc
+              - location
