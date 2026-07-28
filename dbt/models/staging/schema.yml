@@ -6,3 +6,9 @@ models:
         tests: [unique, not_null]
       - name: load_mw
         tests: [not_null]
+  - name: stg_entsoe__forecast_load
+    columns:
+      - name: ts_utc
+        tests: [unique, not_null]
+      - name: load_mw
+        tests: [not_null]
