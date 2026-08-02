@@ -16,17 +16,25 @@ def _get_env_variable(var_name: str):
     return var_value
 
 
-def get_load_data(start_date="20250101", end_date="20260101"):
+def get_load_data(start_date=None, end_date=None, interval=90):
     ENTSOE_API = _get_env_variable("ENTSOE_KEY")
 
-    client = EntsoePandasClient(api_key=ENTSOE_API)
+    if start_date is None and end_date is None:
+        # Dynamically create interval start and end date
+        end_date = pd.Timestamp.now(tz="UTC") + pd.Timedelta(days=2)
+        start_date = pd.Timestamp.now(tz="UTC") - pd.Timedelta(days=interval)
+    elif start_date is None or end_date is None:
+        raise ValueError(
+            "Both start_date and end_date must be provided together, or both must be left as None."
+        )
 
-    start = pd.Timestamp(start_date, tz="GMT")
-    end = pd.Timestamp(end_date, tz="GMT")
     country_code = "HU"
 
-    load_df = client.query_load(country_code, start=start, end=end)
-    forecast_df = client.query_load_forecast(country_code, start=start, end=end)
+    client = EntsoePandasClient(api_key=ENTSOE_API)
+    load_df = client.query_load(country_code, start=start_date, end=end_date)
+    forecast_df = client.query_load_forecast(
+        country_code, start=start_date, end=end_date
+    )
 
     return load_df.reset_index(), forecast_df.reset_index()
 
