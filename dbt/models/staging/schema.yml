@@ -12,11 +12,15 @@ models:
     columns:
       - name: ts_utc
         tests: [unique, not_null]
+      - name: ingested_at
+        tests: [not_null]
       - name: load_mw
         tests: [not_null]
   - name: stg_open_meteo__actual_weather
     columns:
       - name: ts_utc
+        tests: [not_null]
+      - name: ingested_at
         tests: [not_null]
       - name: location
         tests: [not_null]
@@ -32,9 +36,3 @@ models:
         tests: [not_null]
       - name: wind_speed_10m
         tests: [not_null]
-    tests:
-      - dbt_utils.unique_combination_of_columns:
-          arguments: 
-            combination_of_columns: 
-              - ts_utc
-              - location

@@ -4,6 +4,8 @@ with source as (
 renamed as (
     select
         cast(ts as timestamptz) as ts_utc,
+        ingested_at,
+        revision_num,
         location,
         temperature_2m,
         relative_humidity_2m,
@@ -17,12 +19,14 @@ deduped as (
     select 
         *,
         row_number() over (
-            partition by ts_utc, location order by temperature_2m
+            partition by ts_utc, location 
+            order by ingested_at desc, revision_num desc
         ) as row_num
     from renamed
 )
 select  
     ts_utc,
+    ingested_at,
     location,
     temperature_2m,
     relative_humidity_2m,
