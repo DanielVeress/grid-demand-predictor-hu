@@ -52,28 +52,25 @@ def save_load_to_postgres(df, table_name):
 
         cur.execute(f"""
                 CREATE TABLE IF NOT EXISTS {SCHEMA}.{table_name} (
-                    ts TIMESTAMPTZ PRIMARY KEY,
+                    ts TIMESTAMPTZ,
+                    ingested_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+                    revision_num BIGSERIAL,
                     load FLOAT
                 )        
-            """)
-
-        cur.execute(f"""
-                CREATE TEMP TABLE temp_{table_name} (
-                    LIKE {SCHEMA}.{table_name}
-                )
             """)
 
         csv_buffer = io.StringIO()
         df.to_csv(csv_buffer, index=False, header=False)
         csv_buffer.seek(0)
 
-        cur.copy_expert(f"COPY temp_{table_name} FROM STDIN WITH CSV", csv_buffer)
-
-        cur.execute(f"""
-                INSERT INTO {SCHEMA}.{table_name}
-                SELECT * FROM temp_{table_name}
-                ON CONFLICT (ts) DO NOTHING
-            """)
+        cur.copy_expert(
+            f"""
+                COPY {SCHEMA}.{table_name} 
+                (ts, load)
+                FROM STDIN WITH CSV
+            """,
+            csv_buffer,
+        )
 
         conn.commit()
 
