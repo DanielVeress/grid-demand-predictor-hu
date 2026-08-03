@@ -36,3 +36,9 @@ models:
         tests: [not_null]
       - name: wind_speed_10m
         tests: [not_null]
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments: 
+            combination_of_columns: 
+              - ts_utc
+              - location
