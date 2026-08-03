@@ -18,10 +18,19 @@ def _get_env_variable(var_name: str):
     return var_value
 
 
-def get_weather_data():
+def get_weather_data(start_date=None, end_date=None, interval=90):
+    if start_date is None and end_date is None:
+        # Dynamically create interval start and end date
+        end_date = pd.Timestamp.now(tz="UTC")
+        start_date = pd.Timestamp.now(tz="UTC") - pd.Timedelta(days=interval)
+    elif start_date is None or end_date is None:
+        raise ValueError(
+            "Both start_date and end_date must be provided together, or both must be left as None."
+        )
+
     # Setup the Open-Meteo API client with cache and retry on error
     cache_session = requests_cache.CachedSession(
-        ".cache/weather_cache", expire_after=-1
+        ".cache/weather_cache", expire_after=3600
     )
     retry_session = retry(cache_session, retries=5, backoff_factor=0.2)
     openmeteo = openmeteo_requests.Client(session=retry_session)
@@ -33,8 +42,8 @@ def get_weather_data():
     params = {
         "latitude": 47.4979,
         "longitude": 19.0402,
-        "start_date": "2025-01-01",
-        "end_date": "2026-01-01",
+        "start_date": start_date.strftime("%Y-%m-%d"),
+        "end_date": end_date.strftime("%Y-%m-%d"),
         "hourly": [
             "temperature_2m",
             "relative_humidity_2m",
@@ -113,37 +122,34 @@ def save_weather_to_postgres(hourly_dataframe):
         cur.execute(f"""
                 CREATE TABLE IF NOT EXISTS {SCHEMA}.weather (
                     ts TIMESTAMPTZ,
+                    ingested_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+                    revision_num BIGSERIAL,
                     location TEXT,
                     temperature_2m FLOAT,
                     relative_humidity_2m FLOAT,
                     precipitation FLOAT,
                     apparent_temperature FLOAT,
                     cloud_cover FLOAT,
-                    wind_speed_10m FLOAT,
-                    PRIMARY KEY (ts, location)
+                    wind_speed_10m FLOAT
                 )        
-            """)
-
-        cur.execute(f"""
-                CREATE TEMP TABLE temp_raw_weather (
-                    LIKE {SCHEMA}.weather
-                )
             """)
 
         csv_buffer = io.StringIO()
         hourly_dataframe.to_csv(csv_buffer, index=False, header=False)
         csv_buffer.seek(0)
 
-        cur.copy_expert("COPY temp_raw_weather FROM STDIN WITH CSV", csv_buffer)
-
-        cur.execute(f"""
-                INSERT INTO {SCHEMA}.weather
-                SELECT * FROM temp_raw_weather
-                ON CONFLICT (ts, location) DO NOTHING
-            """)
+        cur.copy_expert(
+            f"""
+                COPY {SCHEMA}.weather 
+                (ts, location, temperature_2m, 
+                relative_humidity_2m, precipitation, 
+                apparent_temperature, cloud_cover, wind_speed_10m)
+                FROM STDIN WITH CSV
+            """,
+            csv_buffer,
+        )
 
         conn.commit()
-        print("Raw weather data saved and commited to postgres.")
 
 
 def main():
