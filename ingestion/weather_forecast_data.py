@@ -1,5 +1,6 @@
 import io
 import os
+import time
 
 import openmeteo_requests
 import pandas as pd
@@ -33,7 +34,7 @@ def get_weather_data(run_date):
     params = {
         "latitude": 47.4979,
         "longitude": 19.0402,
-        "run": run_date,
+        "run": run_date.strftime("%Y-%m-%d"),
         "hourly": [
             "temperature_2m",
             "relative_humidity_2m",
@@ -50,9 +51,6 @@ def get_weather_data(run_date):
 
     # Process first location. Add a for-loop for multiple locations or weather models
     response = responses[0]
-    print(f"Coordinates: {response.Latitude()}°N {response.Longitude()}°E")
-    print(f"Elevation: {response.Elevation()} m asl")
-    print(f"Timezone difference to GMT+0: {response.UtcOffsetSeconds()}s")
 
     # Process hourly data. The order of variables needs to be the same as requested.
     hourly = response.Hourly()
@@ -88,8 +86,6 @@ def get_weather_data(run_date):
         col for col in hourly_data if col != "timestamp"
     ]
     hourly_dataframe = hourly_dataframe[col_order]
-
-    print("\nHourly data\n", hourly_dataframe)
 
     return hourly_dataframe
 
@@ -149,8 +145,22 @@ def save_weather_forecast_to_postgres(hourly_dataframe):
 
 def main():
     load_dotenv()
-    hourly_dataframe = get_weather_data(run_date="2026-08-02")
-    save_weather_forecast_to_postgres(hourly_dataframe)
+
+    current_date = pd.Timestamp(year=2024, month=8, day=3)
+    end_date = pd.Timestamp(year=2026, month=8, day=3)
+
+    while current_date <= end_date:
+        # Get and save run
+        try:
+            print("Date:", current_date.strftime("%Y-%m-%d"))
+            hourly_dataframe = get_weather_data(run_date=current_date)
+            save_weather_forecast_to_postgres(hourly_dataframe)
+        except Exception as e:
+            print("\tError:", e)
+
+        # Go to next run time
+        current_date += pd.Timedelta(days=1)
+        time.sleep(0.5)
 
 
 if __name__ == "__main__":
